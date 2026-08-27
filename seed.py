@@ -7,11 +7,11 @@ testimonials).
 Run with:  python seed.py
 Safe to re-run in development: it wipes and recreates tables each time.
 
-SAFETY: this script refuses to run against production. Once you're live,
-schema changes go through migrations (flask db migrate / flask db upgrade,
-see backend/DEPLOY.md), and starter content should never be re-seeded over
-real leads/testimonials. If you genuinely need to reset a non-production
-database, pass --i-understand-this-wipes-the-database explicitly.
+SAFETY: against Postgres (staging/production), this script will NOT drop or
+recreate tables — migrations own the schema there. It will only insert
+starter rows, and only if you pass --i-understand-this-wipes-the-database,
+and only if the relevant tables are currently empty (it refuses to run
+twice and duplicate rows on top of real leads/testimonials).
 """
 import os
 import sys
@@ -21,19 +21,30 @@ from app.models import Product, Category, ServiceItem, Package, GalleryItem, Tes
 
 app = create_app()
 
-if app.config.get("SQLALCHEMY_DATABASE_URI", "").startswith("postgresql"):
-    print("Refusing to run: this database looks like Postgres, which in this project "
-          "means staging or production. seed.py wipes all tables and is for local "
-          "SQLite development only. Use migrations instead.")
+IS_POSTGRES = app.config.get("SQLALCHEMY_DATABASE_URI", "").startswith("postgresql")
+CONFIRMED = "--i-understand-this-wipes-the-database" in sys.argv
+
+if IS_POSTGRES and not CONFIRMED:
+    print("Refusing to run: this database looks like Postgres (staging/production). "
+          "Pass --i-understand-this-wipes-the-database to insert starter rows "
+          "(schema/migrations are left untouched on Postgres).")
     sys.exit(1)
 
-if "--i-understand-this-wipes-the-database" not in sys.argv and os.environ.get("FLASK_CONFIG") == "production":
+if not IS_POSTGRES and not CONFIRMED and os.environ.get("FLASK_CONFIG") == "production":
     print("Refusing to run with FLASK_CONFIG=production.")
     sys.exit(1)
 
 with app.app_context():
-    db.drop_all()
-    db.create_all()
+    if IS_POSTGRES:
+        if Category.query.first() is not None:
+            print("Refusing to run: tables already contain data. This script only "
+                  "seeds an empty database — delete existing rows manually first "
+                  "if you really want to reseed.")
+            sys.exit(1)
+        # Schema already exists via migrations — do not drop/create tables here.
+    else:
+        db.drop_all()
+        db.create_all()
 
     # ---- Admin user -----------------------------------------------------
     admin = User(name="Blazing Trail Admin", email="admin@blazingtrailengineering.com", role="admin")
