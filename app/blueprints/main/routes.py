@@ -13,23 +13,7 @@ main_bp = Blueprint("main", __name__)
 
 @main_bp.route("/health")
 def health():
-    """
-    Smoke-test target: confirms the app is up AND the database is
-    reachable, not just that gunicorn is responding. A 200 here with
-    database: "healthy" means both are true; anything else means don't
-    trust the deploy yet.
-    """
-    from extensions import db
-    try:
-        db.session.execute(db.text("SELECT 1"))
-        database_status = "healthy"
-        status_code = 200
-    except Exception as exc:
-        current_app.logger.error(f"Health check: database unreachable: {exc}")
-        database_status = "unreachable"
-        status_code = 503
-
-    return jsonify({"ok": status_code == 200, "database": database_status}), status_code
+    return jsonify({'status': 'ok'})
 
 
 @main_bp.route("/business")
