@@ -1,0 +1,55 @@
+# Render Blueprint for Blazing Trail Engineering's backend.
+#
+# This file lives here (not at a repo root one level up) because this
+# `backend/` folder is pushed as its own standalone Git repo — the
+# frontend is deployed separately, uploaded manually to Hostinger, not
+# through Git/Render at all. Render looks for render.yaml at the root of
+# whichever repo you connect, and since this folder *is* that repo root,
+# this is the right place for it. (No `rootDir` setting needed below,
+# unlike a monorepo setup — there's no subfolder to point into.)
+#
+# Usage: push this backend/ folder to GitHub/GitLab as its own repo,
+# then in the Render dashboard: New > Blueprint > connect that repo.
+# Render reads this file and provisions the web service + Postgres
+# database together in one step, instead of the manual click-through in
+# DEPLOY.md.
+#
+# Two env vars are deliberately left for you to fill in after the
+# blueprint runs (sync: false means "don't auto-generate, wait for a
+# human"): CORS_ORIGINS (your real Hostinger frontend domain) and
+# GROQ_API_KEY (optional — only needed for the financing advisor
+# tool). Everything else — SECRET_KEY, DATABASE_URL, FLASK_CONFIG — is
+# wired up automatically.
+#
+# This is an alternative to the manual steps in DEPLOY.md, not a
+# replacement for reading it — it still explains what each setting does
+# and how to verify the deploy afterward.
+
+databases:
+  - name: blazingtrail-db
+    plan: free
+    databaseName: blazingtrail
+    user: blazingtrail
+
+services:
+  - type: web
+    name: blazingtrail-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && flask db upgrade
+    startCommand: gunicorn run:app
+    envVars:
+      - key: FLASK_CONFIG
+        value: production
+      - key: FLASK_APP
+        value: app:create_app
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: blazingtrail-db
+          property: connectionString
+      - key: CORS_ORIGINS
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
