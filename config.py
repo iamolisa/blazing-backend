@@ -11,13 +11,17 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 def _normalized_database_url():
-    """Render (and most managed Postgres providers) hand out a DATABASE_URL
-    that starts with 'postgres://'. SQLAlchemy 1.4+/2.x only recognizes the
-    'postgresql://' scheme, so without this the app fails to boot in
-    production with a cryptic dialect error."""
+    """Render hands out a DATABASE_URL that starts with 'postgres://' (or
+    'postgresql://'). SQLAlchemy only recognizes 'postgresql://', and since
+    2.1 that bare scheme defaults to the psycopg v3 driver. This project
+    installs psycopg2-binary, so the driver is named explicitly. Without
+    it the app crashes at startup with 'No module named psycopg'."""
     url = os.environ.get("DATABASE_URL")
-    if url and url.startswith("postgres://"):
-        url = url.replace("postgres://", "postgresql://", 1)
+    if url:
+        for prefix in ("postgres://", "postgresql://"):
+            if url.startswith(prefix):
+                url = url.replace(prefix, "postgresql+psycopg2://", 1)
+                break
     return url or f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'blazingtrail.db')}"
 
 
