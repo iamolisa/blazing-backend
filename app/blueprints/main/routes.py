@@ -27,6 +27,7 @@ def business():
         "business_phone": cfg["BUSINESS_PHONE"],
         "business_phone_secondary": cfg["BUSINESS_PHONE_SECONDARY"],
         "business_whatsapp": cfg["BUSINESS_WHATSAPP"],
+        "business_whatsapp_support": cfg["BUSINESS_WHATSAPP_SUPPORT"],
         "business_email": cfg["BUSINESS_EMAIL"],
         "business_address": cfg["BUSINESS_ADDRESS"],
         "current_year": datetime.utcnow().year,
