@@ -37,6 +37,7 @@ def test_business_info(client):
     assert data["ok"] is True
     assert data["business_name"] == "Blazing Trail Engineering"
     assert "business_whatsapp" in data
+    assert "business_whatsapp_support" in data
 
 
 def test_home(client):
