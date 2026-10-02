@@ -11,17 +11,13 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 def _normalized_database_url():
-    """Render hands out a DATABASE_URL that starts with 'postgres://' (or
-    'postgresql://'). SQLAlchemy only recognizes 'postgresql://', and since
-    2.1 that bare scheme defaults to the psycopg v3 driver. This project
-    installs psycopg2-binary, so the driver is named explicitly. Without
-    it the app crashes at startup with 'No module named psycopg'."""
+    """Render (and most managed Postgres providers) hand out a DATABASE_URL
+    that starts with 'postgres://'. SQLAlchemy 1.4+/2.x only recognizes the
+    'postgresql://' scheme, so without this the app fails to boot in
+    production with a cryptic dialect error."""
     url = os.environ.get("DATABASE_URL")
-    if url:
-        for prefix in ("postgres://", "postgresql://"):
-            if url.startswith(prefix):
-                url = url.replace(prefix, "postgresql+psycopg2://", 1)
-                break
+    if url and url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
     return url or f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'blazingtrail.db')}"
 
 
@@ -35,7 +31,16 @@ class BaseConfig:
     BUSINESS_TAGLINE = "Powering your world with reliable solutions"
     BUSINESS_PHONE = "+234 808 557 8080"
     BUSINESS_PHONE_SECONDARY = "+234 810 869 0802"
-    BUSINESS_WHATSAPP = "2348085578080"
+    # The floating WhatsApp button on every page offers a choice between
+    # these two numbers. Despite the field names below (kept as-is since
+    # BUSINESS_WHATSAPP is also reused, unlabeled, everywhere else it
+    # already appears - footer, contact page, product/gallery detail
+    # pages) - BUSINESS_WHATSAPP is the "Project & Support" line, and
+    # BUSINESS_WHATSAPP_SUPPORT is actually the "Business & Sales" line.
+    # See js/shell.js initWhatsappFab() for where each label maps to
+    # which field.
+    BUSINESS_WHATSAPP = "2348085578080"          # Project & Support
+    BUSINESS_WHATSAPP_SUPPORT = "2348108690802"  # Business & Sales
     BUSINESS_EMAIL = "info@blazingtrailengineering.com"
     # TODO: replace with the real street address once you have one you
     # want public. The homepage Google Maps embed (index.html / home.js)
