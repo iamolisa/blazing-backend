@@ -23,9 +23,23 @@ def _normalized_database_url():
     'postgresql://' scheme, so without this the app fails to boot in
     production with a cryptic dialect error."""
     url = os.environ.get("DATABASE_URL")
-    if url and url.startswith("postgres://"):
+    if not url:
+        return f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'blazingtrail.db')}"
+
+    if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)
-    return url or f"sqlite:///{os.path.join(BASE_DIR, 'instance', 'blazingtrail.db')}"
+
+    # A bare 'postgresql://' scheme leaves SQLAlchemy to pick a default
+    # Postgres driver on its own, and that default can change between
+    # SQLAlchemy versions - it's what broke deploy with "No module named
+    # 'psycopg'" (the newer v3 driver), even though requirements.txt only
+    # installs psycopg2-binary (the older v2 driver). Pin it explicitly to
+    # the one actually installed, rather than relying on whichever one
+    # SQLAlchemy defaults to this week.
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+
+    return url
 
 
 class BaseConfig:
