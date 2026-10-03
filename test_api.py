@@ -2,10 +2,18 @@
 End-to-end smoke tests for the JSON API. Run with:  pytest test_api.py -v
 Uses the seeded dev sqlite db (run `python seed.py` first) so real data
 is exercised, matching what the frontend will actually see.
+
+The admin tests below log in with ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD -
+the same two environment variables seed.py used to create that account -
+so these only pass if your .env still has the values you seeded with.
 """
+import os
 import json
 import pytest
 from app import create_app
+
+ADMIN_EMAIL = os.environ.get("ADMIN_SEED_EMAIL")
+ADMIN_PASSWORD = os.environ.get("ADMIN_SEED_PASSWORD")
 
 
 @pytest.fixture
@@ -213,10 +221,20 @@ def test_quote_form_valid(client):
 
 
 # ---- Admin: auth + CRUD -----------------------------------------------------
+# These three need an admin account already seeded with these exact
+# credentials (python seed.py, after setting ADMIN_SEED_EMAIL /
+# ADMIN_SEED_PASSWORD in .env). Skipped rather than failed when those
+# env vars aren't set, since that's a setup gap, not a broken test.
+requires_seeded_admin = pytest.mark.skipif(
+    not ADMIN_EMAIL or not ADMIN_PASSWORD,
+    reason="ADMIN_SEED_EMAIL / ADMIN_SEED_PASSWORD not set - run seed.py with them set first",
+)
 
+
+@requires_seeded_admin
 def test_admin_login_wrong_password(client):
     r = client.post("/api/admin/login", json={
-        "email": "admin@blazingtrailengineering.com",
+        "email": ADMIN_EMAIL,
         "password": "wrong",
     })
     assert r.status_code == 401
@@ -230,11 +248,12 @@ def test_admin_requires_token(client):
     assert r2.status_code == 401
 
 
+@requires_seeded_admin
 def test_admin_full_flow(client):
     # Login
     r = client.post("/api/admin/login", json={
-        "email": "admin@blazingtrailengineering.com",
-        "password": "ChangeMe123!",
+        "email": ADMIN_EMAIL,
+        "password": ADMIN_PASSWORD,
     })
     assert r.status_code == 200
     token = get_json(r)["token"]
@@ -244,7 +263,7 @@ def test_admin_full_flow(client):
     # /me
     r_me = client.get("/api/admin/me", headers=headers)
     assert r_me.status_code == 200
-    assert get_json(r_me)["user"]["email"] == "admin@blazingtrailengineering.com"
+    assert get_json(r_me)["user"]["email"] == ADMIN_EMAIL
 
     # Dashboard
     r_dash = client.get("/api/admin/dashboard", headers=headers)
