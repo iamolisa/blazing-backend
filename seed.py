@@ -34,6 +34,15 @@ if not IS_POSTGRES and not CONFIRMED and os.environ.get("FLASK_CONFIG") == "prod
     print("Refusing to run with FLASK_CONFIG=production.")
     sys.exit(1)
 
+ADMIN_EMAIL = app.config.get("ADMIN_SEED_EMAIL")
+ADMIN_PASSWORD = app.config.get("ADMIN_SEED_PASSWORD")
+
+if not ADMIN_EMAIL or not ADMIN_PASSWORD:
+    print("Refusing to run: set ADMIN_SEED_EMAIL and ADMIN_SEED_PASSWORD in "
+          "your .env first, so the admin account isn't seeded from a "
+          "hardcoded value in this file.")
+    sys.exit(1)
+
 with app.app_context():
     if IS_POSTGRES:
         if Category.query.first() is not None:
@@ -47,8 +56,8 @@ with app.app_context():
         db.create_all()
 
     # ---- Admin user -----------------------------------------------------
-    admin = User(name="Blazing Trail Admin", email="admin@blazingtrailengineering.com", role="admin")
-    admin.set_password("ChangeMe123!")
+    admin = User(name="Blazing Trail Admin", email=ADMIN_EMAIL.strip().lower(), role="admin")
+    admin.set_password(ADMIN_PASSWORD)
     db.session.add(admin)
 
     # ---- Categories -------------------------------------------------------
@@ -843,5 +852,5 @@ with app.app_context():
 
     db.session.commit()
     print("Database seeded.")
-    print("Admin login -> email: admin@blazingtrailengineering.com  password: ChangeMe123!")
+    print(f"Admin login -> email: {ADMIN_EMAIL}  (password is whatever ADMIN_SEED_PASSWORD was set to)")
     print("CHANGE THIS PASSWORD before deploying.")
