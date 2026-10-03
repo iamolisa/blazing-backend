@@ -6,6 +6,13 @@ should set SECRET_KEY and DATABASE_URL via environment variables rather
 than relying on the defaults below.
 """
 import os
+from dotenv import load_dotenv
+
+# Loaded here, once, so every entry point picks up .env the same way -
+# not just `flask run`/`flask db upgrade`, which load it automatically on
+# their own, but also plain `python seed.py`, `python create_admin.py`,
+# `python run.py` and `pytest`, none of which do that by themselves.
+load_dotenv()
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -87,6 +94,14 @@ class BaseConfig:
     # it. Groq deprecates/renames models periodically; check
     # console.groq.com/docs/models if this stops working.
     GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b")
+
+    # Admin account credentials, used only by seed.py (local/dev) and
+    # create_admin.py (anywhere, including production). Deliberately no
+    # hardcoded fallback for either - unlike GROQ_MODEL above, a default
+    # here would just be a password sitting in the repo under a different
+    # name. Both scripts refuse to run if these aren't set.
+    ADMIN_SEED_EMAIL = os.environ.get("ADMIN_SEED_EMAIL")
+    ADMIN_SEED_PASSWORD = os.environ.get("ADMIN_SEED_PASSWORD")
 
 
 class DevelopmentConfig(BaseConfig):
