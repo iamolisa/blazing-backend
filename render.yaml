@@ -36,7 +36,13 @@ services:
     name: blazingtrail-api
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && flask db upgrade
+    # create_admin.py runs on every build - pushing code, or just changing
+    # an env var in the dashboard (which Render redeploys on its own) -
+    # so updating ADMIN_SEED_PASSWORD here and letting it redeploy is
+    # enough on its own. No Shell tab needed (not available on the free
+    # plan anyway). See create_admin.py for why this is safe to run
+    # unattended on every single deploy.
+    buildCommand: pip install -r requirements.txt && flask db upgrade && python create_admin.py
     startCommand: gunicorn run:app
     envVars:
       - key: FLASK_CONFIG
@@ -52,4 +58,8 @@ services:
       - key: CORS_ORIGINS
         sync: false
       - key: GROQ_API_KEY
+        sync: false
+      - key: ADMIN_SEED_EMAIL
+        sync: false
+      - key: ADMIN_SEED_PASSWORD
         sync: false
